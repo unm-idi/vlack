@@ -1,0 +1,22 @@
+// Fonts
+@import url('https://fonts.googleapis.com/css?family=Noto+Sans:400,400i,700');
+$font-family-base: 'Noto Sans', sans-serif;
+
+// Colors
+$purple: #4d394b;
+$green: #4C9689;
+$gray: rgb(202, 196, 201);
+$text-gray: #a0a0a2;
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  width: 100vw;
+}
+
+body {
+  font-family: $font-family-base;
+}
