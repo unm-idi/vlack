@@ -1,0 +1,99 @@
+<template>
+  <div class="channel">
+    <div class="channel-header">
+      <h3>{{name}}</h3>
+    </div>
+
+    <div class="messages">
+      <message v-for="(message, i) in messages" :key="message.id" :message="message" @star="starMessage(i)"></message>
+    </div>
+
+    <div class="new-message">
+      <textarea v-model="newMessage" @keydown.enter.prevent="createMessage()"></textarea>
+    </div>
+  </div>
+</template>
+
+<script>
+import Message from './Message'
+
+export default {
+  name: 'Channel',
+
+  data: () => {
+    return {
+      name: null,
+      id: null,
+      messages: [],
+      newMessage: '',
+      socketConnection: null
+    }
+  },
+
+  watch: {
+    '$route': function () {
+      this.getChannel()
+    }
+  },
+
+  created () {
+    this.getChannel()
+  },
+
+  beforeRouteUpdate (to, from, next) {
+    this.socketConnection.stop()
+    next()
+  },
+
+  beforeRouteLeave (to, from, next) {
+    this.socketConnection.stop()
+    next()
+  },
+
+  methods: {
+    setupSocket () {
+      const transport = this.$signalR.TransportType.WebSockets
+      this.socketConnection = new this.$signalR.HubConnection('http://localhost:5000/socket?channel_id=' + this.id, {transport: transport})
+      this.socketConnection.on('broadcastMessage', (name, message) => {
+        console.log('hi')
+        console.log(message)
+        this.messages.push(message)
+      })
+      this.socketConnection.start()
+      console.log('socket')
+    },
+
+    createMessage () {
+      if (this.newMessage !== '') {
+        const messageParams = {
+          user: this.$store.state.user,
+          body: this.newMessage,
+          ChannelId: this.id
+        }
+        this.$axios.post('/message', messageParams)
+          .then((response) => {
+            this.newMessage = ''
+          })
+      }
+    },
+
+    getChannel () {
+      this.$axios.get('/channel/' + this.$route.params.id)
+        .then((response) => {
+          this.name = response.data.name
+          this.id = response.data.id
+          this.messages = response.data.messages
+          this.setupSocket()
+        })
+    },
+
+    starMessage (i) {
+      this.messages[i].starred = true
+    }
+  },
+
+  components: {
+    'message': Message
+  }
+}
+</script>

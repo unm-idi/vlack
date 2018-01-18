@@ -95,14 +95,30 @@ First we need to import both axios and signalR into application:
 
 main.js
 ``` js
+import axios from 'axios'
+import * as signalR from '@aspnet/signalr-client'
+```
 
+After we import the libraries, we can extend Vue so that they are available within our components:
+
+main.js
+``` js
+// Axios Setup
+Vue.prototype.$axios = axios.create({
+  baseURL: 'http://localhost:5000/api'
+})
+
+// SignalR Setup
+Vue.prototype.$signalR = signalR
 ```
 
 ## Channels
 
+### Displaying a List of Channels
+
 We'll need to create a model for storing the channels:
 
-App.vue
+App.vue (component)
 ``` js
   name: 'App',
   data () {
@@ -113,9 +129,488 @@ App.vue
 ```
 
 Next we'll create a method that will fetch channels from the server and store them in the model:
+
+App.vue (component)
 ``` js
 methods: {
-  getChannels() {
-    this.
+  getChannels () {
+    this.$axios.get('/channel')
+      .then((response) => {
+        this.channels = response.data
+      })
   }
 }
+```
+
+We want this method to be called as soon as the component is created, so we'll add it to the component's *created* lifecycle hook.
+
+App.vue (component)
+``` js
+created () {
+  this.getChannels()
+},
+```
+
+We can see that this all works by inspecting the component through our browser's vue dev tools.
+
+Next, we'll want to display a list of channels in component's template using the *v-for* directive:
+
+App.vue (template)
+``` html
+<div id="app">
+  <div class="sidebar">
+    <h4>Channels</h4>
+    <a v-for="channel in channels" :key="channel.id">{{channel.name}}</a>
+  </div>
+  
+  <div class="content">
+    <router-view/>
+  </div>
+</div>
+```
+
+### Creating A New Channel
+
+We're going to create a new component that will allow us to create a new channel. Within the component's folder, create a new file called *ChannelForm.vue* and populate it with the following to instantiate a new vue component:
+
+ChannelForm.vue
+``` html
+<template>
+  <div class="new-channel-form">
+    <h1>New Channel</h1>
+  </div>
+</template>
+
+<script>
+export default {
+  name: 'ChannelForm'
+}
+</script>
+```
+
+To access this component as a 'page', we'll need to assign it to a route via the router:
+
+routes/index.js
+``` js
+  ...
+  import ChannelForm from '@/components/ChannelForm'
+  ...
+  export default new Router({
+  routes: [
+    ...
+    {
+      path: '/channel/new',
+      name: 'ChannelForm',
+      component: ChannelForm
+    }
+  ]
+})
+```
+
+We can access this new Channel Form Component by visiting *localhost:8080/channel/new*. We can also add a link to this component in our main App template:
+
+App.vue (template)
+``` html
+<div class="sidebar">
+  <h4>Channels</h4>
+  <router-link to="/channel/new" class="new-channel-link"><i class="fas fa-plus-square"></i></router-link>
+</div>
+```
+
+Now we can get to our new channel form page, so lets go back to our ChannelForm.vue component. The first thing we'll need to do is add the model that will represent the data that makes up a channel. In this case, just a name:
+
+ChannelForm.vue (component)
+``` js
+name: 'ChannelForm',
+data: () => {
+  return {
+    channelName: ''
+  }
+}
+```
+
+To collect this name, we can bind this model attribute to a text field in the template with the *v-model* directive:
+
+ChannelForm.vue (template)
+``` html
+<div class="new-channel-form">
+  <h1>New Channel: {{channelName}}</h1>
+  <input type="text" v-model="channelName" />
+  <button>Create</button>
+</div>
+```
+
+This change binds the channelName attribute to the value of the text field. We can see this through the {{channelName}} handlebars we added. Everytime vue detects a change in its models, it will update the view accordingly. This is called reactivity.
+
+So far we've collected the information we need to create a channel, so the next step is to then submit this data to the server to create the new channel. We'll create a method that does this in the component's methods block:
+
+ChannelForm.vue (component)
+``` js
+methods: {
+  createChannel () {
+    this.$axios.post('/channel', {Name: this.channelName})
+      .then((response) => {
+        this.$router.push('/')
+      })
+  }
+}
+```
+
+This will make a request to the server to create the channel, and upon a succesful response, we will navigate back to the home path. The last step is to simply bind this method to a button in the template:
+
+ChannelForm.vue (template)
+``` html
+<button v-on:click="createChannel" v-bind:disabled="channelName === ''">Create</button>
+```
+
+The *v-on* directive binds an event (a click event in this case) to a method on the component's instance. The *v-bind* attribute binds the button's disabled attribute to the expression we pass into it - in this case we're disabling the button if the channelName model is blank.
+
+
+Notice that when we create a channel, we'll be routed back to the home page, but the channel we've created won't appear in the list until we refresh the page. This is because we are only updating the App components list of channels when the component is created, and because this is an SPA, there is no actual page load when we change routes. Therefore the App component is not re-created - it's the same instance of the component. We'll fix this issue by introducing an application state store.
+
+
+## Create The Application State Via Vuex
+Vuex provides a global store and state management functionality to a Vue application. We're going to create a store that will contain the list of channels as well as a user session, which we'll set up next.
+
+First, we'll go ahead and simply create the basic store by creating a file within *src* name store.js
+
+store.js
+``` js
+export default {
+  state: {
+    channels: []
+  },
+  mutations: {
+  }
+})
+```
+
+We will then need to tell our vue application to use this store:
+
+main.js
+``` js
+// Under import Vue ...
+import Vuex from 'vuex'
+import applicationState from './store';
+
+...
+
+Vue.use(Vuex)
+const store = new Vuex.Store(applicationState)
+
+
+/* eslint-disable no-new */
+new Vue({
+  el: '#app',
+  router,
+  store,
+  components: { App },
+  template: '<App/>'
+})
+```
+
+Our vue application can now access the Vuex store. We will now refactor App.vue to use the store's channel list, rather than its own, but first we need to write the mutations that will allow us to access and modify the state:
+
+main.js
+``` js
+mutations: {
+  setChannels (state, channelList) {
+    state.channels = channelList
+  },
+
+  addChannel (state, channel) {
+    state.channels.push(channel)
+  }
+}
+```
+
+Now we can refactor App.vue to use this store:
+
+App.vue (component)
+``` js
+export default {
+  name: 'App',
+
+  computed: {
+    channels () {
+      return this.$store.state.channels
+    }
+  },
+
+  created () {
+    this.getChannels()
+  },
+
+  methods: {
+    getChannels () {
+      this.$axios.get('/channel')
+        .then((response) => {
+          this.$store.commit('setChannels', response.data)
+        })
+    }
+  }
+}
+```
+
+We'll also refactor ChannelForm to store the newly created channel in the store:
+
+ChannelForm.vue (component)
+``` js
+createChannel () {
+  this.$axios.post('/channel', {Name: this.channelName})
+    .then((response) => {
+      this.$store.commit('addChannel', response.data)
+      this.$router.push('/')
+    })
+}
+```
+
+Now when we create a new channel, it'll be added to the channel list in the App component
+
+
+## User Session
+Before we can start sending messages in our channels, we need to have some notion of a user session. We're not going to develop a full-fledged authenticated user session setup, but we are going to ask users to sign in before they use the app and store their name in the store as well as localstorage.
+
+store.js
+``` js
+state: {
+  ...
+  user: null
+},
+mutations: {
+  ...
+  setUser (state, username) {
+    state.user = username
+    window.sessionStorage.setItem('vlackUser', username)
+  },
+
+  clearUser (state) {
+    state.user = null
+    window.sessionStorage.clear('vlackUser')
+  }
+}
+```
+
+Now we can provide our App component the ability to make sure that someone is signed in before using the app, and sign them in if not.
+
+App.vue (component)
+```js
+data: () => {
+  return {
+    userName: ''
+  }
+},
+...
+methods: {
+  ...
+  login () {
+    this.$store.commit('setUser', this.userName)
+  }
+}
+```
+
+App.Vue (template)
+```html
+<div id="app">
+  <template v-if="user">
+    <div class="sidebar">
+      <h3>{{user}}</h3>
+      ...
+    </div>
+    ...
+  </template>
+
+  <template v-else>
+    <h1>Sign In</h1>
+    <input type="text" v-model="userName" />
+    <button @click="login()" :disabled="userName === ''">Login</button>
+  </template>
+</div>
+```
+
+One more change to allow our app to make use of sessionStorage:
+
+App.vue (component)
+```js
+created () {
+  const loggedInUser = window.sessionStorage.getItem('vlackUser')
+  if (loggedInUser) {
+    this.$store.commit('setUser', loggedInUser)
+  }
+  this.getChannels()
+},
+```
+
+## Channel View
+We'll now create the the component that will serve as the chat view for each channel we've created. Create a file name *Channel.vue* in the Components folder. Before we add anything to this component, lets set up the router to use it.
+
+routes/index.js
+```js
+routes: [
+  ...
+  {
+    path: '/channel/:id',
+    name: 'Channel',
+    component: Channel
+  }
+]
+```
+
+We'll also want to convert our channel links in App.vue to use this route.
+
+App.vue (template)
+```html
+
+```
+
+This route, we've set up with a parameter called *id* which we'll use in our component to know what channel we are viewing. Copy the following into Channel.vue to get started.
+
+Channel.vue
+```html
+<template>
+  <div class="channel">
+    <div class="channel-header">
+      <h3>{{name}}</h3>
+    </div>
+
+    <div class="messages">
+      <p v-for="message in messages" :key="message.id">{{message.body}}</p>
+    </div>
+
+    <div class="new-message"></div>
+  </div>
+</template>
+
+<script>
+export default {
+  name: 'Channel',
+
+  data: () => {
+    return {
+      name: null,
+      id: null,
+      messages: []
+    }
+  },
+
+  created () {
+    this.getChannel()
+  },
+
+  methods: {
+    getChannel () {
+    }
+  }
+}
+</script>
+```
+
+Now we'll impliment the *getChannel* to make a request for the channel with the id that was passed into the url as a parameter. We can access this varialbe through the $route attribute availabile to the instance.
+
+Channe.vue (component)
+```js
+getChannel () {
+  this.$axios.get('/channel/' + this.$route.params.id)
+    .then((response) => {
+      this.name = response.data.name
+      this.id = response.data.id
+      this.messages = response.data.messages
+    })
+}
+```
+
+When we click on a channel for the first time we'll navigate to this component and should see the name of the channel. However, when we click on another channel nothing changes. This is because vue recognizes that the new route uses the same component that is being shown, and it reuses the instance - therefore the created method is not going to be called again. To get around this, we can detect a route change via vue's *watch* and then reload the data with the new id parameter. 
+
+Channel.vue (component)
+```js
+...
+watch: {
+  '$route': function () {
+    this.getChannel()
+  }
+},
+```
+
+Now our component should behave as expected. When the route changes, our component adapts.
+
+
+## Creating Messages
+To begin creating messages, we'll need to create a model to store a new message and a method for making the post request:
+
+Channel.vue (component)
+```js
+data: () => {
+  return {
+    ...
+    newMessage: ''
+  }
+}
+...
+methods: {
+  createMessage() {
+    if (this.newMessage !== '') {
+      const messageParams = {
+        user: this.$store.state.user,
+        body: this.newMessage,
+        ChannelId: this.id
+      }
+      this.$axios.post('/message', messageParams)
+        .then((response) => {
+          this.newMessage = ''
+        })
+    }
+  }
+  ...
+}
+```
+And of course, we'll need the form:
+
+Channel.vue (template)
+```html
+...
+<div class="new-message">
+  <textarea v-model="newMessage" @keydown.enter.prevent="createMessage()"></textarea>
+</div>
+...
+```
+
+Now we can create messages and see them once we reload the page, but thats no fun so we're going to add websockets so that the server can alert our application that a new comment has been made.
+
+Channel.vue (component)
+```js
+methods: {
+  setupSocket () {
+    const transport = this.$signalR.TransportType.WebSockets
+    this.socketConnection = new this.$signalR.HubConnection('http://localhost:5000/socket?channel_id=' + this.id, {transport: transport})
+    this.socketConnection.on('broadcastMessage', (name, message) => {
+      this.messages.push(message)
+    })
+    this.socketConnection.start()
+  },
+  ...
+  getChannel () {
+    this.$axios.get('/channel/' + this.$route.params.id)
+        .then((response) => {
+          ...
+          this.setupSocket()
+        })
+  }
+}
+```
+
+We've created a new method that sets up the socket and we're going to call it as soon as we finish fetching the channel. We call the method there, becasue we want to ensure that we have successfully fetched the channel's id before setting the connection up. Now one more quick step, just to make our code a bit cleaner: whenever we change routes we want to disconnect the websocket connection before starting a new one:
+
+Channe.vue (component)
+```js
+created () {}
+...
+beforeRouteUpdate (to, from, next) {
+  this.socketConnection.stop()
+  next()
+},
+
+beforeRouteLeave (to, from, next) {
+  this.socketConnection.stop()
+  next()
+},
+```
