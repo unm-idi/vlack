@@ -10,7 +10,7 @@
           :key="channel.id"
           :to="{name: 'Channel', params: {id: channel.id}}"
         >
-          {{channel.name}}
+          # {{channel.name}}
         </router-link>
       </div>
 
@@ -20,9 +20,11 @@
     </template>
 
     <template v-else>
-      <h1>Sign In</h1>
-      <input type="text" v-model="userName" />
-      <button @click="login()" :disabled="userName === ''">Login</button>
+      <div class="sign-in-form">
+        <h1>Sign In</h1>
+        <input type="text" v-model="userName" /><br>
+        <button @click="login()" :disabled="userName === ''">Login</button>
+      </div>
     </template>
   </div>
 </template>

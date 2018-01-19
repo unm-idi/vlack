@@ -533,8 +533,141 @@ watch: {
 
 Now our component should behave as expected. When the route changes, our component adapts.
 
+## Message Component
+Although all of the components we have created so far act as 'pages' in our application, they will most commonly be used to create self-contained pieces of an application's ui that can be used like custom html elements. This is a great way to keep our applications modual and maintainable by encapsulating both UI and functionality together in reusable packages. In this case, we're going to create a component to display our messages. To get started, create a file named Message.vue in the components folder and populate it with the following:
 
-## Creating Messages
+Message.vue
+```html
+<template>
+  <div class="message">
+    I'm a message
+  </div>
+</template>
+
+<script>
+export default {
+  name: 'Message'
+}
+</script>
+```
+
+Next, we'll want to register this component in the Channel component so we can use it in the view.
+
+Channel.vue (component)
+```js
+  import Message from './Message'
+  ...
+  export default {
+    ...
+    components: {
+      components: {
+        'message': Message
+      }
+    }
+  }
+```
+
+Now we've registered this component with the selector, *message*, which can be used in the template. Go ahead and replace the p tags with message tags:
+
+Channel.vue (template)
+```html
+<div class="messages">
+  <message 
+    v-for="message in messages" 
+    :key="message.id"
+  >
+  </message>
+</div>
+```
+
+Now we should see "I'm a message" where our messages used to be. Of course, we actually want to see our own messages, so we'll need to pass the message object from the channel component to the message component. Vue allows us to do this through props. Update the message component with the following:
+
+Message.vue
+```html
+<template>
+  <div class="message">
+    <b>{{message.user}}</b> <span>{{message.createdAt}}</span>
+    <p>{{message.body}}</p>
+    <a @click="star"><i class="far fa-star"></i></a>
+  </div>
+</template>
+
+<script>
+export default {
+  name: 'Message',
+  props: ['message']
+}
+</script>
+```
+
+By declaring a message prop on our component, we can then pass an object into it with the following:
+
+Channe.vue (template)
+```html
+<message 
+  v-for="message in messages" 
+  :key="message.id"
+  :message="message"
+>
+</message>
+```
+
+We should now see our messages!
+
+There might be times when we want to modify the data that is passed into our components as props, however we cannot simply change them from within the component. By default vue supports one way data flow between a parent and a child. If the parent's data changes then it will automatically be propagated to the child, but not the other way around. the proper way to handle this scenarios is for the child to alert the parent of a change it wants to make and let the parent actually perform the transformation. In our message component, we're going to want our message component to alert the channel component to 'star' that message. We'll do this by emitting an event:
+
+Message.vue
+```html
+<template>
+  <div class="message" :class="{starred: message.starred}">
+    <b>{{message.user}}</b> <span>{{message.createdAt}}</span>
+    <p>{{message.body}}</p>
+    <a @click="star"><i class="far fa-star"></i></a>
+  </div>
+</template>
+
+<script>
+export default {
+  name: 'Message',
+  props: ['message'],
+
+  methods: {
+    star () {
+      this.$emit('star')
+    }
+  }
+}
+</script>
+```
+
+The channel View can then detect this event:
+
+Channel.vue (template)
+```html
+<div class="messages">
+  <message 
+    v-for="(message, i) in messages" 
+    :key="message.id"
+    :message="message"
+    @star="starMessage(i)"
+  >
+  </message>
+</div>
+```
+
+And the method to actually make the change:
+
+Channel.vue (component)
+```js
+methods: {
+  ...
+  starMessage (i) {
+    this.messages[i].starred = true
+  }
+}
+```
+
+## Creating New Messages
 To begin creating messages, we'll need to create a model to store a new message and a method for making the post request:
 
 Channel.vue (component)
@@ -600,7 +733,7 @@ methods: {
 
 We've created a new method that sets up the socket and we're going to call it as soon as we finish fetching the channel. We call the method there, becasue we want to ensure that we have successfully fetched the channel's id before setting the connection up. Now one more quick step, just to make our code a bit cleaner: whenever we change routes we want to disconnect the websocket connection before starting a new one:
 
-Channe.vue (component)
+Channel.vue (component)
 ```js
 created () {}
 ...
@@ -613,4 +746,18 @@ beforeRouteLeave (to, from, next) {
   this.socketConnection.stop()
   next()
 },
+```
+
+To add the finishing touch we're going to have the messages scroll to the bottom every time a new message is added:
+
+Channel.vue (component) 
+```js
+watch: {
+  ...
+  'messages': function () {
+    setTimeout(() => {
+      this.$el.querySelector('.messages').scrollTo(0, 1000000000)
+    }, 100);
+  }
+}
 ```

@@ -1,15 +1,26 @@
 <template>
   <div class="channel">
     <div class="channel-header">
-      <h3>{{name}}</h3>
+      <h3># {{name}}</h3>
     </div>
 
     <div class="messages">
-      <message v-for="(message, i) in messages" :key="message.id" :message="message" @star="starMessage(i)"></message>
+      <message
+        v-for="(message, i) in messages"
+        :key="message.id"
+        :message="message"
+        @star="starMessage(i)"
+      >
+      </message>
     </div>
 
     <div class="new-message">
-      <textarea v-model="newMessage" @keydown.enter.prevent="createMessage()"></textarea>
+      <textarea
+        v-model="newMessage"
+        @keydown.enter.prevent="createMessage()"
+        :placeholder="'New Message in #' + name"
+      >
+      </textarea>
     </div>
   </div>
 </template>
@@ -33,6 +44,12 @@ export default {
   watch: {
     '$route': function () {
       this.getChannel()
+    },
+
+    'messages': function () {
+      setTimeout(() => {
+        this.$el.querySelector('.messages').scrollTo(0, 10000000)
+      }, 100)
     }
   },
 
@@ -55,12 +72,9 @@ export default {
       const transport = this.$signalR.TransportType.WebSockets
       this.socketConnection = new this.$signalR.HubConnection('http://localhost:5000/socket?channel_id=' + this.id, {transport: transport})
       this.socketConnection.on('broadcastMessage', (name, message) => {
-        console.log('hi')
-        console.log(message)
         this.messages.push(message)
       })
       this.socketConnection.start()
-      console.log('socket')
     },
 
     createMessage () {

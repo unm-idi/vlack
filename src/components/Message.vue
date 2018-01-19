@@ -2,7 +2,7 @@
   <div class="message" :class="{starred: message.starred}">
     <b>{{message.user}}</b> <span>{{message.createdAt}}</span>
     <p>{{message.body}}</p>
-    <button @click="star">Star</button>
+    <a @click="star"><i class="far fa-star"></i></a>
   </div>
 </template>
 
@@ -18,9 +18,3 @@ export default {
   }
 }
 </script>
-
-<style>
-  .message.starred {
-    background: yellow;
-  }
-</style>
