@@ -70,7 +70,8 @@ export default {
   methods: {
     setupSocket () {
       const transport = this.$signalR.TransportType.WebSockets
-      this.socketConnection = new this.$signalR.HubConnection('http://localhost:5000/socket?channel_id=' + this.id, {transport: transport})
+      const socketEndpoint = 'http://ec2-35-167-99-178.us-west-2.compute.amazonaws.com:5000/socket?channel_id='
+      this.socketConnection = new this.$signalR.HubConnection(socketEndpoint + this.id, {transport: transport})
       this.socketConnection.on('broadcastMessage', (name, message) => {
         this.messages.push(message)
       })
