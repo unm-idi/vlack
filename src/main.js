@@ -12,7 +12,7 @@ import applicationState from './store'
 
 // Axios Setup
 Vue.prototype.$axios = axios.create({
-  baseURL: 'http://ec2-35-167-99-178.us-west-2.compute.amazonaws.com:5000/api'
+  baseURL: process.env['HTTP_ENDPOINT']
 })
 
 // SignalR Setup
