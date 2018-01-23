@@ -84,7 +84,7 @@ In this application we'll use font awesome, so we'll need to add the webfont. To
 
 We'll also want to include a stylesheet so that we dont have to worry about styles as we develop.
 
-Copy the contents of [this css file](https://raw.githubusercontent.com/unm-idi/vlack/master/dist/static/css/app.8407abfabd6e7ee58afd3dfdf6a92a95.css) to /src/assets/styles.css and then in main.js, require the file:
+Copy the contents of [this css file](https://raw.githubusercontent.com/unm-idi/vlack/master/dist/static/css/app.6f59a85698263d006607c75badc92bce.css) to /src/assets/styles.css and then in main.js, require the file:
 
 ##### 3.3 main.js
 ```js
