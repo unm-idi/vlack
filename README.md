@@ -54,7 +54,7 @@ This will start a local server on port 8080, so we can take a look at our applic
 To stop the server simply use `ctrl-c`
 
 
-## 3 Adding A Few Dependencies.
+## 3. Adding A Few Dependencies.
 Our application has almost everything we will need, but there are a couple packages that will need to be installed. To do this will need to declare them in the `package.json` file, so go ahead and open that up and add the following within the `dependencies` object.
 
 ##### 3.1 package.json
@@ -86,14 +86,14 @@ We'll also want to include a stylesheet so that we dont have to worry about styl
 
 Copy the contents of [this css file](https://raw.githubusercontent.com/unm-idi/vlack/master/dist/static/css/app.8407abfabd6e7ee58afd3dfdf6a92a95.css) to /src/assets/styles.css and then in main.js, require the file:
 
-##### ##### 3.3 main.js
+##### 3.3 main.js
 ```js
 require('./assets/styles.css')
 ```
 
 Now we're all set up to begin developing our vue application!
 
-## 4 Extend Vue With HTTP/Websock Functionality
+## 4. Extend Vue With HTTP/Websock Functionality
 First, lets set some environment variables to hold the endpoints of our backend api:
 
 ##### 4.1 config/dev.env.js
@@ -130,7 +130,7 @@ Vue.prototype.$axios = axios.create({
 Vue.prototype.$signalR = signalR
 ```
 
-## 5 Channels List
+## 5. Channels List
 
 ### Displaying a List of Channels
 
@@ -290,7 +290,7 @@ The *v-on* directive binds an event (a click event in this case) to a method on 
 Notice that when we create a channel, we'll be routed back to the home page, but the channel we've created won't appear in the list until we refresh the page. This is because we are only updating the App components list of channels when the component is created, and because this is an SPA, there is no actual page load when we change routes. Therefore the App component is not re-created - it's the same instance of the component. We'll fix this issue by introducing an application state store.
 
 
-## 6 Create The Application State Via Vuex
+## 6. Create The Application State Via Vuex
 Vuex provides a global store and state management functionality to a Vue application. We're going to create a store that will contain the list of channels as well as a user session, which we'll set up next.
 
 First, we'll go ahead and simply create the basic store by creating a file within *src* name store.js
@@ -466,7 +466,7 @@ created () {
 },
 ```
 
-## 8 Channel View
+## 8. Channel View
 We'll now create the the component that will serve as the chat view for each channel we've created. Create a file name *Channel.vue* in the Components folder. Before we add anything to this component, lets set up the router to use it.
 
 ##### 8.1 routes/index.js
@@ -564,7 +564,7 @@ watch: {
 
 Now our component should behave as expected. When the route changes, our component adapts.
 
-## 9 Message Component
+## 9. Message Component
 Although all of the components we have created so far act as 'pages' in our application, they will most commonly be used to create self-contained pieces of an application's ui that can be used like custom html elements. This is a great way to keep our applications modual and maintainable by encapsulating both UI and functionality together in reusable packages. In this case, we're going to create a component to display our messages. To get started, create a file named Message.vue in the components folder and populate it with the following:
 
 ##### 9.1 Message.vue
@@ -695,7 +695,7 @@ methods: {
 }
 ```
 
-## 10 Creating New Messages
+## 10. Creating New Messages
 To begin creating messages, we'll need to create a model to store a new message and a method for making the post request:
 
 ##### 10.1 Channel.vue (component)
